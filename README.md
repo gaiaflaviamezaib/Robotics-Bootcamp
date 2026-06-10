@@ -1,94 +1,141 @@
-# 🤖 Robotics-Bootcamp : Autonomous Line-Following Robot
+## Software Architecture
 
-Hey there! 👋 Welcome to my autonomous robot project.
-
-This repository holds all the code for a **Raspberry Pi**-powered robot I built. The main goal? Getting it to navigate a city-like grid on its own, avoiding obstacles, and smoothly following lines like a pro.
-
-Unlike basic robots that turn like tanks (by spinning their wheels in opposite directions), this one uses **Ackermann steering**—just like a real car. This makes coding its movements a lot more fun (and challenging)!
-
----
-
-## 🛠 What's Under the Hood? (Hardware)
-
-Here is what makes the robot tick:
-
-| Component | What it does |
-|---|---|
-| **Raspberry Pi** | The main brain of the operation (GPIO, I2C, PWM) |
-| **2× DC Motors** | Pushes the robot forward (rear-wheel drive) |
-| **3× Servomotors** | Turns the front wheels and rotates the "head" |
-| **Adafruit PCA9685** | A 16-channel controller to handle all the servos smoothly |
-| **3× IR Sensors** | Looks at the floor to track the black line (left, middle, right) |
-| **Ultrasonic Sensor** | The robot's eyes to spot obstacles blocking the road |
-| **OLED Display** | A tiny screen to show what the robot is thinking |
-
----
-
-## 🗺️ Smart Grid Navigation (The Cool Part)
-
-The biggest achievement in this project is the **Smart Manhattan** navigation script. Imagine dropping the robot in a mini-city of crossing lines. You tell it "go from intersection A to intersection B", and it figures out the rest.
-
-### 1. The Map
-The track is mapped out like an X/Y graph:
-* **X** is horizontal (from 0 to 3).
-* **Y** is vertical.
-The intersections are treated as "nodes" that the robot travels between.
-
-### 2. Finding the Best Route
-Before moving an inch, the robot runs a **BFS (Breadth-First Search)** algorithm in its head to find the absolute shortest path to the destination.
-It outputs a list of coordinates, like this: `[(0, 1.0), (1, 1.0), (1, 0.0), (2, 0.0)]`
-
-### 3. Knowing Where to Turn
-Because the robot doesn't have a real GPS, it uses math (Dot and Cross products) based on its current heading to translate those coordinates into real driving instructions:
-* `straight` (Keep going!)
-* `left` (Turn left here)
-* `right` (Turn right here)
-
-### 4. Making the Turn
-Since our robot steers like a car, it can't just spin on the spot at an intersection. When the sensors detect a crossroad, the robot does a specific parking maneuver: it rolls forward a bit, cranks the wheels, reverses to align itself, and then centers back on the new line. 
-
----
-
-## 🚀 Other Cool Features
-
-### Smooth Driving (PID Controller)
-**Check it out here:** `navigation/infinity_circuit.py`
-
-To stop the robot from zigzagging crazily over the line, it uses a **PID** (Proportional, Integral, Derivative) algorithm. This does some quick math to adjust the steering wheel perfectly so it glides along the track.
-
-### Dynamic Obstacle Avoidance
-**Check it out here:** `navigation/smart_manhattan_obstacles.py`
-
-What if someone drops a box on the road? The robot's ultrasonic sensor is always scanning ahead. If a street is blocked, the robot instantly crosses that street off its mental map, calculates a brand new route, and does a U-turn if it has to.
-
----
-
-## 📂 How the Code is Organized
+The project is organized into separate folders according to function. Each folder separates a specific part of the robot system, such as hardware control, navigation logic, reusable algorithms, or bootcamp task scripts.
 
 ```text
 Robotics-Bootcamp/
-├── hardware/               # How to talk to the motors and sensors
-├── bootcamp_tasks/         # Smaller test scripts from learning the basics
-├── algorithms/             # The heavy math stuff (like the PID logic)
-├── navigation/             # The main event:
-│   ├── infinity_circuit.py # Endless track follower
-│   ├── simple_traversal.py # Basic intersection driving
-│   ├── smart_manhattan.py  # The smart grid GPS
-│   └── smart_manhattan_obstacles.py # The grid GPS + Obstacle avoidance
-└── reset_robot.py          # A panic button script to stop the motors!
+├── hardware/                         # Hardware interface modules
+│   ├── dc_motor.py                   # DC motor control
+│   ├── servo.py                      # Servo control using the PCA9685 controller
+│   ├── line_sensor.py                # Infrared line sensor readings
+│   ├── ultrasonic.py                 # Ultrasonic distance measurement
+│   ├── oled_display.py               # OLED display support
+│   └── leds.py                       # LED control
+│
+├── bootcamp_tasks/                   # Individual bootcamp exercise scripts
+│   └── robotControlClass.py          # High-level robot control wrapper
+│
+├── algorithms/                       # Reusable algorithm modules
+│   └── pid_controller.py             # PID controller logic
+│
+├── navigation/                       # Main navigation programs
+│   ├── infinity_circuit.py           # PID-based line following
+│   ├── simple_traversal.py           # Basic intersection traversal
+│   ├── smart_manhattan.py            # Grid navigation
+│   └── smart_manhattan_obstacles.py  # Grid navigation with obstacle avoidance
+│
+└── reset_robot.py                    # Safely stops motors and resets servos
 ```
 
 ---
 
-## ⚙️ Want to try it out?
+## Smart Grid Navigation
 
-1. Install the required Python packages on your Raspberry Pi:
-```bash
-pip install RPi.GPIO adafruit-circuitpython-pca9685 luma.oled
+The main navigation feature of this project is implemented in `navigation/smart_manhattan.py`.
+
+This script allows the robot to navigate a Manhattan-style grid made of intersecting black lines. The user provides a starting coordinate and a destination coordinate. The program then calculates a route and converts that route into driving instructions that the robot can execute on the physical track.
+
+### 1. Grid Representation
+
+The track is represented as a coordinate system.
+
+- `X` represents the horizontal position.
+- `Y` represents the vertical position.
+- Intersections are represented as nodes.
+- Connections between intersections are represented as edges.
+
+For example, a route may pass through coordinates such as:
+
+```python
+[(0, 1.0), (1, 1.0), (1, 0.0), (2, 0.0)]
 ```
 
-2. Launch the smart grid navigator:
-```bash
-python3 navigation/smart_manhattan.py
+This means that the robot should move from `(0, 1.0)` to `(1, 1.0)`, then to `(1, 0.0)`, and finally to `(2, 0.0)`.
+
+### 2. Route Calculation
+
+Before the robot starts moving, the program calculates a route from the starting point to the destination.
+
+The navigation script uses a weighted shortest-path approach. Moving straight has a lower cost, turning has a higher cost, and making a U-turn has the highest cost. This is important because the robot uses Ackermann steering and cannot rotate in place like a tank-style robot.
+
+This approach helps the robot choose a route that is not only short, but also practical for its physical steering mechanism.
+
+### 3. Converting Coordinates into Driving Instructions
+
+The robot does not have GPS or a global positioning sensor. Instead, it uses its current heading and the next coordinate in the calculated path.
+
+The program compares the robot's current direction with the next required movement direction. It then converts the coordinate path into simple driving instructions:
+
+- `straight`: continue forward through the intersection.
+- `left`: turn left at the intersection.
+- `right`: turn right at the intersection.
+- `stop`: stop when the destination is reached.
+
+These instructions allow the robot to follow the calculated path using only line sensors and its known starting orientation.
+
+### 4. Intersection Detection and Turning
+
+The robot detects intersections using its three infrared sensors: left, middle, and right.
+
+When the sensors detect an intersection, the robot stops briefly and checks the next instruction in the route. If the next instruction is `left` or `right`, the robot performs a specific turning maneuver.
+
+Because the robot uses Ackermann steering, it cannot spin in place. Instead, it completes turns using a controlled sequence of movements:
+
+1. Stop at the intersection.
+2. Center the wheels.
+3. Steer in the required direction.
+4. Move forward and backward to align the robot with the new line.
+5. Use the infrared sensors to detect the new line.
+6. Straighten the wheels and continue driving.
+
+This process allows the robot to complete turns reliably despite its car-like steering system.
+
+---
+
+## Additional Features
+
+### PID Line Following
+
+The PID-based line-following system is implemented in:
+
+```text
+navigation/infinity_circuit.py
 ```
-*(It will pop up a map in the terminal and ask you where you want to go!)*
+
+The robot uses a PID controller to follow the black line smoothly. PID stands for:
+
+- Proportional
+- Integral
+- Derivative
+
+The infrared sensors measure the robot's position relative to the line. These readings are converted into an error value, which represents how far the robot is from the center of the line.
+
+The PID controller uses this error to calculate a steering correction. This correction is sent to the front-wheel servo so the robot can adjust its direction while moving forward.
+
+This improves stability and reduces unnecessary zigzagging.
+
+### Obstacle Avoidance
+
+Obstacle-aware navigation is implemented in:
+
+```text
+navigation/smart_manhattan_obstacles.py
+```
+
+This script extends the grid navigation system by using the ultrasonic sensor to detect obstacles in front of the robot.
+
+If an obstacle is detected, the program treats the blocked route as unavailable. It then recalculates a new path to the destination using the remaining available connections in the grid.
+
+This allows the robot to adapt to changes in the environment instead of stopping permanently when a path is blocked. If necessary, the robot can choose an alternative route or perform a U-turn.
+
+---
+
+## Code Organization Summary
+
+The main project files are organized as follows:
+
+- `hardware/`: contains low-level modules for controlling motors, servos, sensors, LEDs, and the OLED display.
+- `bootcamp_tasks/`: contains learning exercises and the high-level `robotControlClass.py` wrapper used by the navigation scripts.
+- `algorithms/`: contains reusable algorithm logic, including the PID controller.
+- `navigation/`: contains the main robot behavior scripts, including line following, grid navigation, and obstacle-aware navigation.
+- `reset_robot.py`: safely stops the motors, resets the servos, and returns the robot to a safe state.
