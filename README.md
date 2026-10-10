@@ -1,3 +1,15 @@
+# Robotics-Bootcamp
+
+Python code for a Raspberry Pi robot car with Ackermann steering, written for the Robotics Bootcamp of the CentraleSupélec Bachelor of Global Engineering (Fall 2025). It covers hardware drivers, PID line following, and grid navigation with obstacle avoidance using infrared and ultrasonic sensors.
+
+The course handout is included as `CS_RoboticsBootcamp_Training_Workshop_2025_v0-2.pdf`.
+
+Each navigation script runs directly on the robot, for example:
+
+```bash
+python navigation/smart_manhattan.py
+```
+
 ## Software Architecture
 
 The project is organized into separate folders according to function. Each folder separates a specific part of the robot system, such as hardware control, navigation logic, reusable algorithms, or bootcamp task scripts.
@@ -13,6 +25,7 @@ Robotics-Bootcamp/
 │   └── leds.py                       # LED control
 │
 ├── bootcamp_tasks/                   # Individual bootcamp exercise scripts
+│   ├── tsk01_dc_motors.py ...        # Exercises: motors, LEDs, sensors, IMU, OLED
 │   └── robotControlClass.py          # High-level robot control wrapper
 │
 ├── algorithms/                       # Reusable algorithm modules
