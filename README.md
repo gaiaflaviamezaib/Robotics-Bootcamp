@@ -10,6 +10,8 @@ Each navigation script runs directly on the robot, for example:
 python navigation/smart_manhattan.py
 ```
 
+The route planner has tests that run without the robot: `python -m pytest`.
+
 ## Software Architecture
 
 The project is organized into separate folders according to function. Each folder separates a specific part of the robot system, such as hardware control, navigation logic, reusable algorithms, or bootcamp task scripts.
@@ -30,6 +32,8 @@ Robotics-Bootcamp/
 │
 ├── algorithms/                       # Reusable algorithm modules
 │   └── pid_controller.py             # PID controller logic
+│
+├── tests/                            # Route planner tests (no hardware needed)
 │
 ├── navigation/                       # Main navigation programs
 │   ├── infinity_circuit.py           # PID-based line following

@@ -20,3 +20,6 @@ build/
 .idea/
 *.swp
 *.swo
+
+# Test cache
+.pytest_cache/
